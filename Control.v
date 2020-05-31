@@ -14,9 +14,54 @@ assign ALUOp= {ALUOp1,ALUOp0};
 	begin
 		case(Instruction)
 			6'b000000 : 	// R  type  
-						begin
+				begin
+					RegDst 		<= 1'b1;
+					ALUsrc 		<= 1'b0;
+					MemtoReg	<= 1'b1;
+					RegWrite 	<= 1'b1;
+					MemRead 	<= 1'b0;
+					MemWrite	<= 1'b0;
+					Branch		<= 1'b0;
+					Jump 		<= 1'b0;
+					ALUOp1		<= 1'b1;
+					ALUOp0		<= 1'b0;							
+				end
+
+
+			6'b001000 : 	// ADD Immediate 
+				begin
+					RegDst 		<= 1'b1;								
+					ALUsrc 		<= 1'b1;
+					MemtoReg	<= 1'b1;
+					RegWrite 	<= 1'b1;
+					MemRead 	<= 1'b0;
+					MemWrite	<= 1'b0;
+					Branch		<= 1'b0;
+					Jump 		<= 1'b0;
+					ALUOp1		<= 1'b1;
+					ALUOp0		<= 1'b1;							
+				end
+
+
+			6'b001100 : 	// AND Immediate
+				begin												
+					RegDst 		<= 1'b1;
+					ALUsrc 		<= 1'b1;
+					MemtoReg	<= 1'b1;
+					RegWrite 	<= 1'b1;
+					MemRead 	<= 1'b0;
+					MemWrite	<= 1'b0;
+					Jump 		<= 1'b0;
+					Branch		<= 1'b0;
+					ALUOp1		<= 1'b1;
+					ALUOp0		<= 1'b1;							
+				end
+
+
+			6'b001101 : 	// OR Immediate
+				begin												
 							RegDst 		<= 1'b1;
-							ALUsrc 		<= 1'b0;
+							ALUsrc 		<= 1'b1;
 							MemtoReg	<= 1'b1;
 							RegWrite 	<= 1'b1;
 							MemRead 	<= 1'b0;
@@ -24,72 +69,27 @@ assign ALUOp= {ALUOp1,ALUOp0};
 							Branch		<= 1'b0;
 							Jump 		<= 1'b0;
 							ALUOp1		<= 1'b1;
-							ALUOp0		<= 1'b0;							
-						end
-
-
-						6'b001000 : 	// ADD Immediate 
-						begin
-							RegDst 		<= 1'b1;									//MODIFY
-							ALUsrc 		<= 1'b0;
-							MemtoReg	<= 1'b1;
-							RegWrite 	<= 1'b1;
-							MemRead 	<= 1'b0;
-							MemWrite	<= 1'b0;
-							Branch		<= 1'b0;
-							Jump 		<= 1'b0;
-							ALUOp1		<= 1'b1;
-							ALUOp0		<= 1'b0;							
-						end
-
-
-						6'b001100 : 	// AND Immediate
-						begin													//MODIFY
-							RegDst 		<= 1'b1;
-							ALUsrc 		<= 1'b0;
-							MemtoReg	<= 1'b1;
-							RegWrite 	<= 1'b1;
-							MemRead 	<= 1'b0;
-							MemWrite	<= 1'b0;
-							Jump 		<= 1'b0;
-							Branch		<= 1'b0;
-							ALUOp1		<= 1'b1;
-							ALUOp0		<= 1'b0;							
-						end
-
-
-						6'b001101 : 	// OR Immediate
-						begin													//MODIFY
-							RegDst 		<= 1'b1;
-							ALUsrc 		<= 1'b0;
-							MemtoReg	<= 1'b1;
-							RegWrite 	<= 1'b1;
-							MemRead 	<= 1'b0;
-							MemWrite	<= 1'b0;
-							Branch		<= 1'b0;
-							Jump 		<= 1'b0;
-							ALUOp1		<= 1'b1;
-							ALUOp0		<= 1'b0;							
+							ALUOp0		<= 1'b1;							
 						end
 
 						6'b000010 : 	// JUMP
-						begin													//MODIFY
-							RegDst 		<= 1'b1;
-							ALUsrc 		<= 1'b0;
-							MemtoReg	<= 1'b1;
-							RegWrite 	<= 1'b1;
+						begin									
+							RegDst 		<= 1'bx;
+							ALUsrc 		<= 1'bx;
+							MemtoReg	<= 1'bx;
+							RegWrite 	<= 1'b0;
 							MemRead 	<= 1'b0;
 							MemWrite	<= 1'b0;
 							Branch		<= 1'b0;
-							Jump 		<= 1'b0;
-							ALUOp1		<= 1'b1;
-							ALUOp0		<= 1'b0;							
+							Jump 		<= 1'b1;
+							ALUOp1		<= 1'bx;
+							ALUOp0		<= 1'bx;							
 						end
 
 						6'b001011 : 	// SLTI
-						begin													//MODIFY
+						begin													
 							RegDst 		<= 1'b1;
-							ALUsrc 		<= 1'b0;
+							ALUsrc 		<= 1'b1;
 							MemtoReg	<= 1'b1;
 							RegWrite 	<= 1'b1;
 							MemRead 	<= 1'b0;
@@ -97,11 +97,11 @@ assign ALUOp= {ALUOp1,ALUOp0};
 							Branch		<= 1'b0;
 							Jump 		<= 1'b0;
 							ALUOp1		<= 1'b1;
-							ALUOp0		<= 1'b0;							
+							ALUOp0		<= 1'b1;							
 						end
 
 
-			6'b100011 :	// LW
+						6'b100011 :	// LW
 						begin
 							RegDst 		<= 1'b0;
 							ALUsrc 		<= 1'b1;
@@ -114,7 +114,7 @@ assign ALUOp= {ALUOp1,ALUOp0};
 							ALUOp1		<= 1'b0;
 							ALUOp0		<= 1'b0;							
 						end
-			6'b101011 : // SW
+						6'b101011 : // SW
 						begin
 							RegDst 		<= 1'bx;
 							ALUsrc 		<= 1'b1;
@@ -127,18 +127,32 @@ assign ALUOp= {ALUOp1,ALUOp0};
 							ALUOp1		<= 1'b0;
 							ALUOp0		<= 1'b0;
 						end
-			6'b000100 : // BEQ
+					6'b000100 : // BEQ
 						begin
-							RegDst 		<= 1'b0;
-							ALUsrc 		<= 1'b1;
+							RegDst 		<= 1'bx;
+							ALUsrc 		<= 1'b0;
 							MemtoReg	<= 1'bx;
 							RegWrite 	<= 1'b0;
 							MemRead 	<= 1'b0;
-							MemWrite	<= 1'b1;
-							Branch		<= 1'b0;
+							MemWrite	<= 1'b0;
+							Branch		<= 1'b1;
 							Jump 		<= 1'b0;
 							ALUOp1		<= 1'b0;
-							ALUOp0		<= 1'b0;
+							ALUOp0		<= 1'b1;
+						end
+
+					6'b000100 : // BNE   Modify
+						begin
+							RegDst 		<= 1'bx;
+							ALUsrc 		<= 1'b0;
+							MemtoReg	<= 1'bx;
+							RegWrite 	<= 1'b0;
+							MemRead 	<= 1'b0;
+							MemWrite	<= 1'b0;
+							Branch		<= 1'b1;
+							Jump 		<= 1'b0;
+							ALUOp1		<= 1'b0;
+							ALUOp0		<= 1'b1;
 						end
 			default:
 						begin
