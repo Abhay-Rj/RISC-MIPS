@@ -29,6 +29,8 @@ module Add(Result,A,B);
 	output  reg [31:0] Result;
 	input 		[31:0] A,B;
 
+	initial begin Result=32'd0; end
+
 always @(A,B)
 begin
 	Result=A+B;

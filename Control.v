@@ -13,6 +13,20 @@ assign ALUOp= {ALUOp1,ALUOp0};
 	always@(Instruction)
 	begin
 		case(Instruction)
+			6'b111111 :     // NOP
+				begin
+					RegDst 		<= 1'b1;
+					ALUsrc 		<= 1'b0;
+					MemtoReg	<= 1'b1;
+					RegWrite 	<= 1'b0;
+					MemRead 	<= 1'b0;
+					MemWrite	<= 1'b0;
+					Branch		<= 1'b0;
+					Jump 		<= 1'b0;
+					ALUOp1		<= 1'b1;
+					ALUOp0		<= 1'b0;							
+				end
+
 			6'b000000 : 	// R  type  
 				begin
 					RegDst 		<= 1'b1;
@@ -156,16 +170,16 @@ assign ALUOp= {ALUOp1,ALUOp0};
 						end
 			default:
 						begin
-							RegDst 		<= 1'bZ;
-							ALUsrc 		<= 1'bZ;
-							MemtoReg	<= 1'bZ;
-							RegWrite 	<= 1'bZ;
-							MemRead 	<= 1'bZ;
-							MemWrite	<= 1'bZ;
-							Branch		<= 1'bZ;
-							Jump 		<= 1'bZ;
-							ALUOp1		<= 1'bZ;
-							ALUOp0		<= 1'bZ;
+							RegDst 		<= 1'bx;
+							ALUsrc 		<= 1'bx;
+							MemtoReg	<= 1'bx;
+							RegWrite 	<= 1'bx;
+							MemRead 	<= 1'bx;
+							MemWrite	<= 1'bx;
+							Branch		<= 1'bx;
+							Jump 		<= 1'bx;
+							ALUOp1		<= 1'bx;
+							ALUOp0		<= 1'bx;
 						end
 		endcase		
 	end			
@@ -190,6 +204,8 @@ input  		[1:0] AluOp;
 			2'b10 : // R-Type Funct defines ALU mode
 				begin
 					case(Funct)
+						6'b000000 :  // SLL
+							ALUCnt = 4'b1101;
 						6'b100000 :	// ADD 
 							ALUCnt = 4'b0010;
 						6'b100010 : // SUB

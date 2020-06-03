@@ -8,11 +8,9 @@ module PipelinedMIPS_tb();
 
 initial 
 	begin
-			Clk=1'b0;
+			Clk=1'b1;
 			Rst=1'b0;
 			#1 Rst=1'b1;
-
-
 			forever #1 Clk=~Clk;
 	end
 
@@ -21,7 +19,8 @@ initial
 		$dumpfile("Test.vcd");
 		$dumpvars(0,PipelinedMIPS_tb);
 		
-		#50 Rst=1'b0; $finish;
+		
+		#49 Rst=1'b0; $finish;
 
 	end
 endmodule
