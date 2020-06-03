@@ -1,4 +1,4 @@
-`include "PipelinedMIPS_Hazards.v"
+`include "PipelinedMIPS.v"
 
 module PipelinedMIPS_tb();
 
