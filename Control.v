@@ -29,7 +29,7 @@ assign ALUOp= {ALUOp1,ALUOp0};
 
 			6'b000000 : 	// R  type  
 				begin
-					RegDst 		<= 1'b1;
+					RegDst 		<= 1'b1;	
 					ALUsrc 		<= 1'b0;
 					MemtoReg	<= 1'b1;
 					RegWrite 	<= 1'b1;

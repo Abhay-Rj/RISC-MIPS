@@ -9,7 +9,7 @@ module HazardUnit(nop,stall,flushIF,EX_MEM_Rd,MEM_WB_Rd,ID_EX_Rt,ID_EX_Rs,EX_MEM
 
 	reg Hazflag;					// Flag register for DEBUGGING
 
-always(posedge rst)
+always@(posedge Rst)
 	begin
 	 stall = 5'b00000;
 	 nop=1'b0;
