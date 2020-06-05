@@ -4,10 +4,8 @@
 `include "Mux.v"
 `include "SignExtension.v"
 `include "ALU.v"
-`include "PipelineControl.v"
 `include "Control.v"
 `include "HazardUnit.v"
-`include "EqualityDetector.v"
 
 module PipelinedMIPS(Clk,Rst);
 
