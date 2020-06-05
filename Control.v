@@ -17,7 +17,7 @@ assign ALUOp= {ALUOp1,ALUOp0};
 				begin
 					RegDst 		<= 1'b1;
 					ALUsrc 		<= 1'b0;
-					MemtoReg	<= 1'b1;
+					MemtoReg	<= 1'b0;
 					RegWrite 	<= 1'b0;
 					MemRead 	<= 1'b0;
 					MemWrite	<= 1'b0;
@@ -216,12 +216,6 @@ input  		[1:0] AluOp;
 							ALUCnt = 4'b0001;
 						6'b101010 : // SLT
 							ALUCnt = 4'b0111;
-			// 2'b11 : // I-Type Instructions
-			// 	begin 
-			// 		case(Imm)
-
-			// 		endcase
-
 						default: 
 							ALUCnt = 4'bZZZZ;
 					endcase

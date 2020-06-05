@@ -11,6 +11,7 @@ initial
 			Clk=1'b1;
 			Rst=1'b0;
 			#1 Rst=1'b1;
+
 			forever #1 Clk=~Clk;
 	end
 
@@ -20,7 +21,7 @@ initial
 		$dumpvars(0,PipelinedMIPS_tb);
 		
 		
-		#49 Rst=1'b0; $finish;
+		#50 Rst=1'b0; $finish;
 
 	end
 endmodule

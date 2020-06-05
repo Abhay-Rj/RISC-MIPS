@@ -5,7 +5,8 @@ module InstructionMemoryFile(Address,Data,Clk);
 
 	reg        [ 7:0] imembank [0:63];  //  8x64  64B memory
 
-initial begin $readmemh("Instruction_Memory.txt",imembank); end
+initial begin $readmemh("Instruction_Memory.txt",imembank); end // Multiple test cases for jump branch dependencies
+//initial begin $readmemh("Instruction_Memory(old).txt",imembank); end // Basic Program
 
 
 	// always @(posedge Clk) 
