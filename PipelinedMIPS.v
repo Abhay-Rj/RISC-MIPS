@@ -12,7 +12,7 @@ module PipelinedMIPS(Clk,Rst);
 input Clk,Rst;
 // Pipeline registers
 reg  [ 63:0] IF_ID_pipereg; 
-reg  [151:0] ID_EX_pipereg;
+reg  [119:0] ID_EX_pipereg;
 reg  [ 72:0] EX_MEM_pipereg;
 reg  [ 70:0] MEM_WB_pipereg;
 
@@ -119,7 +119,7 @@ always@(posedge Clk)
 			ID_EX_pipereg[105: 96] <= {rtSel,rdSel};	// Rt and Rd for writeback stage
 			ID_EX_pipereg[113:106] <= ControlWire1;		// Control wire1= {ALUsrc,regwrite,memwrite,ALUop1,ALUop0,memtoreg,memread,regdst}
 			ID_EX_pipereg[119:114] <= opCode_nop;		// Instruction Opcode for Immediate Instructions (ADDI,SLTI)
-//			ID_EX_pipereg[151:120] <= JA_BA;			// Jump/Branch Address
+
 		 end
 		else// Stall the pipeline register and create a bubble for the Execution Stage
 			if(nop==1'b1)
