@@ -1,13 +1,14 @@
-module DataMemoryFile(ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
+module DataMemoryFile(MemError,ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
 	output      [31:0] ReadData;
+	output			   MemError;
 
 	input [31:0] Address;
 	input [31:0] WriteData;
 	input 	     Clk,memWrite,memRead,Rst;
 
-	reg        [7:0] registerbank [0:63];  //8x64 Bits = 64 Byte memory
+	reg        [7:0] dataMem [0:63];  //8x64 Bits = 64 Byte memory
 
-	initial begin $readmemh("Data_Memory.txt",registerbank); end
+	initial begin $readmemh("Data_Memory.txt",dataMem); end
 
 	// always @(posedge Clk) 
 	// begin
@@ -22,12 +23,12 @@ module DataMemoryFile(ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
 	// end 
 	
 
-	assign ReadData =(memRead)?{registerbank[Address+2'b11],registerbank[Address+2'b10],registerbank[Address+2'b01],registerbank[Address]}:32'hZZZZZZZZ;
+	assign ReadData =(memRead)?{dataMem[Address+2'b11],dataMem[Address+2'b10],dataMem[Address+2'b01],dataMem[Address]}:32'hZZZZZZZZ;
 				// Scoops 4 8 bit memory locations at a time in Little Endian
 	always @(posedge Clk) 
 	begin
 		if(memWrite)
-			{registerbank[Address+2'b11],registerbank[Address+2'b10],registerbank[Address+2'b01],registerbank[Address]} <= WriteData;
-			// Check again Not sure yet
+			{dataMem[Address+2'b11],dataMem[Address+2'b10],dataMem[Address+2'b01],dataMem[Address]} <= WriteData;
+			// Writes 4 bytes
 	end
 endmodule

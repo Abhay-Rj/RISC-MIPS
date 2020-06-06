@@ -1,4 +1,3 @@
-
 `include "Register_File.v"
 `include "Data_Memory_File.v"
 `include "Instruction_Memory_File.v"
@@ -7,14 +6,15 @@
 `include "ALU.v"
 `include "Control.v"
 `include "HazardUnit.v"
+`include "PipelineRegisterController.v"
 
 module PipelinedMIPS(Clk,Rst);
 
 input Clk,Rst;
 // Pipeline registers
-reg  [ 63:0] IF_ID_pipereg;
-reg  [190:0] ID_EX_pipereg;
-reg  [107:0] EX_MEM_pipereg;
+reg  [ 63:0] IF_ID_pipereg; 
+reg  [119:0] ID_EX_pipereg;
+reg  [ 72:0] EX_MEM_pipereg;
 reg  [ 70:0] MEM_WB_pipereg;
 
 reg  [ 31:0] PC_reg;
@@ -22,144 +22,159 @@ reg  [ 31:0] PC_reg;
 wire [ 31:0] Instruction,inc4_PC,PCout,DO,PCin;
 wire [ 31:0] data1,data2,writeData,Extdata;
 wire [ 31:0] ALUresult,B,ImOffset,Offset_add;
-wire [ 31:0] JuOffset32,JA_ALUout;
+wire [ 31:0] JuOffset32,JA_BA;// Jumpaddress/Branch Address
 wire [ 27:0] JuOffset28;
-wire [  9:0] ControlWire1;
-wire [  6:0] ControlWire2;
+wire [  7:0] ControlWire1;
+wire [  3:0] ControlWire2;
 wire [  5:0] opCode,opCode_nop;
-wire [  4:0] writeReg,writeReg2;
+wire [  4:0] writeReg,writeReg2,writeReg3;
 wire [  4:0] rsSel,rtSel,rdSel;
-wire [  4:0] stall;
-wire [  3:0] ALUCnt;
+wire [  3:0] ALUCnt,stall;
 wire [  1:0] ALUOp;
-wire [  1:0] ControlWire3;
-wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump;
-wire 		 flushIF,nop;
+wire [  1:0] ControlWire3,hazType;
+wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump,zero_eqdet,branch_zero;
+wire 		 flush; // flushIn goes from hazard unit to control unit
+wire 		 nop,memHAZ;
 
-always@(posedge Rst) 
+										
+	HazardUnit 			HazUnit 			(hazType,branch_zero,jump,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
+	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazType); // Combinational as of now
+
+always@(posedge Rst) 					// At reset set PC to Address 32'd0 
 	begin 
 		PC_reg= 32'd0;
-		IF_ID_pipereg <= 64'd0;
-		ID_EX_pipereg <=186'd0;
-		EX_MEM_pipereg<=108'd0;
-		MEM_WB_pipereg<= 71'd0;
+		IF_ID_pipereg <= {6'd63,26'd0};//NOP
+		 ID_EX_pipereg <={6'd63,180'd0}; // NOP
+		 EX_MEM_pipereg<=108'd0;
+		 MEM_WB_pipereg<= 71'd0;
   	end
-
-// Stall signal for 5 stages : [4]:MEM_WB,[3]:EX_MEM,[2]:ID_EX,[1]:IF_ID,[0]:PC
-// 	HazardUnit HazUnit (nop,stall,flushIF,MEM_WB_pipereg,EX_MEM_pipereg,ID_EX_pipereg);
 
 always @(posedge Clk)
  	begin
- 		if(stall[0]==1'b0)
-			PC_reg	<= PCin ;
+ 		if(stall[0]==1'b0)                   // Check for PC Stall
+			PC_reg	<= PCin ;				// Update PC at Clock 1
 		else
-			PC_reg	<= PC_reg;
+			PC_reg	<= PC_reg;				// Incase of a Stall do not update PC
 end
 
-//----------------------------------Instruction---Fetch---------------------------------------------------------------------------------------------------
-//				Pipeline register of ex/mem stage will provide Offset_add and PCselection signal 
-assign PCout=PC_reg;
+//----------------------------------Instruction---Fetch--------------------------------------------------------------------------------------------------------
 
-	Mux 					PCSelect 			(PCin,inc4_PC,EX_MEM_pipereg[31:0],PCsrc);					// Selection musx for PC value PC+4 or PC+4+Offset
-	InstructionMemoryFile 	InstructionMemory 	(PC_reg,Instruction,Clk);
-	Add 			  		PCAddressIncrement	(inc4_PC,PCout,32'd4);								// Adder for PC + 4
+assign PCout=PC_reg;						// Wire connected to PC output
+
+	Mux 					PCSelect 			(PCin,inc4_PC,JA_BA,PCsrc);// mux for PC value <= PC+4 or Branch/Jump Address
+	InstructionMemoryFile 	InstructionMemory 	(PC_reg,Instruction,Clk);	// 64 x 8 Bit Instruction Memory
+	Add 			  		PCAddressIncrement	(inc4_PC,PCout,32'd4);		// Adder for PC + 4
 
 always@(posedge Clk)
 	begin 
-		if(stall[1]==1'b0)
+		if(stall[1]==1'b0)					// Normal Pipeline
 		 begin
-			IF_ID_pipereg[31: 0] <= Instruction;
-			IF_ID_pipereg[63:32] <= inc4_PC;
+			IF_ID_pipereg[31: 0] <= Instruction;		// Update Instruction to  IF_ID
+			IF_ID_pipereg[63:32] <= inc4_PC;			// Updatw PC+4 address to IF_ID
 		 end
-		else
-			IF_ID_pipereg		 <= IF_ID_pipereg;
+	 	else
+	 		IF_ID_pipereg	<= IF_ID_pipereg;
+
+	 	if(flush==1'b1)
+		 		IF_ID_pipereg 	<= {6'd63,26'd0};
 	end
 
 //----------------------------------Instruction---Decode---------------------------------------------------------------------------------------------------
-// Control Unit generates only 2 bits of ALU op that go to ALUControl in Next Stage.
 
-assign rsSel  = IF_ID_pipereg[25:21];   // Instruction's Rs Field
-assign rtSel  = IF_ID_pipereg[20:16];	//	Instruction's Rt Field
-assign rdSel  = IF_ID_pipereg[15:11];	//	Instruction's Rd Field
-assign opCode = IF_ID_pipereg[31:26];
-assign JuOffset32={IF_ID_pipereg[63:60],JuOffset28};  										// {PC+4[31:28], 28 bit shiftet jump address}
-assign ControlWire1	={ALUsrc,regWrite,memWrite,ALUOp,memtoreg,memRead,regDst,branch,jump};  // Control Signals Bundled together.
+assign rsSel  	 = IF_ID_pipereg[25:21];   //  Instruction's Rs Field
+assign rtSel  	 = IF_ID_pipereg[20:16];	//	Instruction's Rt Field
+assign rdSel  	 = IF_ID_pipereg[15:11];	//	Instruction's Rd Field
+assign opCode 	 = IF_ID_pipereg[31:26];	//  OpCode for the Instruction first 6 bits
+assign writeReg3 = MEM_WB_pipereg[68:64];   //  Destination register to be written in WB stage
+assign JuOffset32={IF_ID_pipereg[63:60],JuOffset28};	// {PC+4[31:28], 28 bit shiftet jump address} Concatanates to 32 Bits Jump Address
+assign PCsrc 	 =((branch && zero_eqdet) || jump);  // Control signals branch,zero,jump are generated in ID stage sent to IF
+assign ControlWire1	={ALUsrc,regWrite,memWrite,ALUOp,memtoreg,memRead,regDst};  // Control Signals Bundled together.
+assign zero_eqdet= ~(|(data1^data2));
+assign branch_zero= branch&&zero_eqdet;
+// Detects if data in Rs and Rt is equal or not, Zero==1 if both data are equal 
+	RegisterFile		Registers 			(data1,data2,rsSel,rtSel,writeReg3,writeData,Clk,Rst,MEM_WB_pipereg[70]);
+// Register File has 32 GPRs, data1&2 are 32 bit data of selected registers,writeData is RD reg data,MEM_WB_pipereg[70] is the RegWrite Signal
+	SignExt 			SignExtend 			(Extdata,IF_ID_pipereg[15:0]);
+// Sign Extends Immediate value to 32 bits
+	Shft2Jump 			Shiftby2Jump		(JuOffset28,IF_ID_pipereg[25:0]);
+// Left Shifts 26 bit input by 2 bits making 28 bit output i.e. JuOffset28
 
-	RegisterFile		Registers 			(data1,data2,rsSel,rtSel,MEM_WB_pipereg[68:64],writeData,Clk,Rst,MEM_WB_pipereg[70]);	// General Purpose Register File 32 GPRs
-	SignExt 			SignExtend 			(Extdata,IF_ID_pipereg[15:0]);			// Sign Extends Immediate value to 32 bits
-	Control 			CUnit 				(opCode_nop,ALUsrc,regWrite,memWrite,ALUOp,memtoreg,memRead,regDst,branch,jump);			//Control decodes all the control signals
-	Shft2Jump 			Shiftby2Jump		(JuOffset28,IF_ID_pipereg[25:0]);		// 26 bit jump offset left shifted by 2 
+	Shft2 				Shiftby2 			(ImOffset,Extdata); 
+// Left Shifts Immediate sign extended data by 2 bits for offset address 
+	Add  				ImmAddressAdder		(Offset_add,IF_ID_pipereg[63:32],ImOffset);
+// Dedicated adder for adding the Offset and PC+4 for Immediate Address for Branching
+	Mux 				JumpAddressSel 		(JA_BA,JuOffset32,Offset_add,branch);
+// Decides to either Jump or Branch if Jump =1 Jump, If Jump=0,Branch=1,Check Zero if Z=1 Branch else No branching.
+	Control 			CUnit 				(opCode_nop ,ALUsrc,regWrite,memWrite,ALUOp,memtoreg,memRead,regDst,branch,jump);			//Control decodes all the control signals
+// opcode_nop is either 6 bit opcode or 6 bit Nop (6'd63)
 	Mux6 				NOPinsert 			(opCode_nop,opCode,6'b111111,nop); 
-										//	(nop,stall,flushIF,	EX_MEM_Rd,MEM_WB_Rd,ID_EX_Rt,ID_EX_Rs,EX_MEM_regWen,MEM_WB_regWen);
-	HazardUnit 			HazUnit 			(nop,stall,flushIF,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[5],ControlWire3[1]);
+// If nop == 1 means Insert NOP bubble in the EX stage
 
 always@(posedge Clk)
 	begin 
-		if(stall[2]==1'b0 && nop==1'b0)
+		if(stall[2]==1'b0)		//Normal Pipeline	
 		 begin
-			ID_EX_pipereg[ 31:  0] <= data1;					// Rs 32 bit data
-			ID_EX_pipereg[ 63: 32] <= data2;					// Rt 32 bit data
-			ID_EX_pipereg[ 95: 64] <= Extdata;					//Immediate Sign extended value
-			ID_EX_pipereg[105: 96] <={rtSel,rdSel};				// Rt and Rd for writeback stage
-			ID_EX_pipereg[115:106] <=ControlWire1;				// Control wire1= {ALUsrc,regwrite,memwrite,ALUop1,ALUop0,memtoreg,memread,regdst,branch,jump} [115:106]
-			ID_EX_pipereg[147:116] <=IF_ID_pipereg[63:32];		// Forwards the PC+4 Address
-			ID_EX_pipereg[153:148] <=opCode_nop;					// Forwards Opcode for Immeddiate type Decoding to be used by ALUControl
-			ID_EX_pipereg[185:154] <=JuOffset32;				// Jump Offset= {4 higher bits of PC+4, 28 bits of left shifted 26 bit Jump offset immediate  }
-			ID_EX_pipereg[190:186] <=rsSel;
+			ID_EX_pipereg[ 31:  0] <= data1;			// Rs 32 bit data
+			ID_EX_pipereg[ 63: 32] <= data2;			// Rt 32 bit data
+			ID_EX_pipereg[ 95: 64] <= Extdata;			//Immediate Sign extended value
+			ID_EX_pipereg[105: 96] <= {rtSel,rdSel};	// Rt and Rd for writeback stage
+			ID_EX_pipereg[113:106] <= ControlWire1;		// Control wire1= {ALUsrc,regwrite,memwrite,ALUop1,ALUop0,memtoreg,memread,regdst}
+			ID_EX_pipereg[119:114] <= opCode_nop;		// Instruction Opcode for Immediate Instructions (ADDI,SLTI)
+
 		 end
-		else
-			ID_EX_pipereg			<={JuOffset32,opCode_nop,ID_EX_pipereg[147:116],116'h1_5000_0000_0000_0000_0000_0000_0000};
-		//	ID_EX_pipereg			<=ID_EX_pipereg;
+		else// Stall the pipeline register and create a bubble for the Execution Stage
+			if(nop==1'b1)
+		 		ID_EX_pipereg			<=  {opCode_nop,ControlWire1,5'd0,5'd0,32'd0,32'd0,32'd0}; 
+		 	else
+		 		ID_EX_pipereg	<= ID_EX_pipereg;
+				
 	end
 
 //----------------------------------EXECUTION STAGE-----------------------------------------------------------------------------------------------------------
-					
-assign ControlWire2={ID_EX_pipereg[106],ID_EX_pipereg[114:113],ID_EX_pipereg[110:109],ID_EX_pipereg[107],zero};	   //  	jump,-,regWrite,memWrite,--,memtoreg,memRead,-,branch,Zero
+				
+assign ControlWire2={ID_EX_pipereg[112:111],ID_EX_pipereg[108:107]};//	{-,regwrite,memwrite,-,-,memtoreg,memread,-}
 
 	ALU 			ALU0 					(Zero,ALUresult,ID_EX_pipereg[31:0],B,ALUCnt);		
-	ALUControl 		ALU1 					(ALUCnt,ID_EX_pipereg[112:111],ID_EX_pipereg[69:64],ID_EX_pipereg[153:148]);// 2 Bits of ALUOp, 6 bits for I-Type OP
-	Mux 			InputSelectALU 			(B,ID_EX_pipereg[63:32],ID_EX_pipereg[95:64],ID_EX_pipereg[115]); 			// [115] is AluSrc 
-	Shft2 			Shiftby2 				(ImOffset,ID_EX_pipereg[95:64]);
-	Add  			ImmediateAddressAdder	(Offset_add,ID_EX_pipereg[147:116],ImOffset);								//Adder for adding Immediate Offset to PC + 4
-	Mux5 			RdRtSelRF 				(writeReg,ID_EX_pipereg[105:101],ID_EX_pipereg[100:96],ID_EX_pipereg[108]); //Reg Dst 	
-	Mux 			JumpAddressSel 			(JA_ALUout,ALUresult,ID_EX_pipereg[185:154],ID_EX_pipereg[106]); 			// [106] = JUMP
+//  Zero Flag is not used due to EQDT, ID_EX_pipereg[31:0] = RsData
+	ALUControl 		ALU1 					(ALUCnt,ID_EX_pipereg[110:109],ID_EX_pipereg[69:64],ID_EX_pipereg[119:114]);
+// 										(ALUCnt, 2 bit AluOp, 6 bit Funct, 6 bit ImmOpcode)
+	Mux 			InputSelectALU 			(B,ID_EX_pipereg[63:32],ID_EX_pipereg[95:64],ID_EX_pipereg[113]); 	
+// Mux for selecting the ALU input , B connects to ALU input,Rt data,Ext Data, [113] is AluSrc control wire
+	Mux5 			RdRtSelRF 				(writeReg,ID_EX_pipereg[105:101],ID_EX_pipereg[100:96],ID_EX_pipereg[106]); 
+// 5 bit Mux for selecting writeback stage's destination Rt or Rd , Reg Dst signal is [106]
 
 always@(posedge Clk)
 	begin
 		if(stall[3]==1'b0)
-		begin
-			EX_MEM_pipereg[ 31:  0] <= Offset_add;			// PC immediate offset address
-			EX_MEM_pipereg[ 63: 32] <= JA_ALUout;			// Alu output or Jump address depends on Jump signal
-			EX_MEM_pipereg[ 95: 64] <= ID_EX_pipereg[63:32]; // Data 2 from Register File
-			EX_MEM_pipereg[102: 96] <= ControlWire2;		// Control wire2 = {jump,regwrite,memwrite,memtoreg,memread,branch,zero} [102: 96]
-			EX_MEM_pipereg[107:103] <= writeReg;			// Register to be selected in writeback stage either rs or rt
-		end
+		 begin
+			EX_MEM_pipereg[ 31:  0] <= ALUresult;	// Alu output/Memory Address
+			EX_MEM_pipereg[ 63: 32] <= ID_EX_pipereg[63:32]; // Rt.Data from Register File
+			EX_MEM_pipereg[ 67: 64] <= ControlWire2;// Control wire2 = {regwrite,memwrite,memtoreg,memread}
+			EX_MEM_pipereg[ 72: 68] <= writeReg;	// Register to be selected in writeback stage either rs or rt
+		 end
 		else
-			EX_MEM_pipereg			<=EX_MEM_pipereg;
+				EX_MEM_pipereg			<=EX_MEM_pipereg;
 	end
-	
+
 //----------------------------------MEMORY STAGE-----------------------------------------------------------------------------------------------------------
 
-assign ControlWire3 = {EX_MEM_pipereg[101],EX_MEM_pipereg[99]}; // regWrite, memtoreg
-assign PCsrc 	 	=  EX_MEM_pipereg[102] | (EX_MEM_pipereg[ 97] & EX_MEM_pipereg[96]); // pcSrc= (branch & zero)|Jump 
-assign writeReg2    =  EX_MEM_pipereg[107:103];
-DataMemoryFile 			DataMemory 				(DO,EX_MEM_pipereg[63:32],EX_MEM_pipereg[95:64],EX_MEM_pipereg[100],EX_MEM_pipereg[98],Clk,Rst);
+assign ControlWire3 = {EX_MEM_pipereg[67],EX_MEM_pipereg[65]}; // regWrite, memtoreg
+assign writeReg2    =  EX_MEM_pipereg[72:68];
 
-always@(posedge Clk)
-	begin
-		if(stall[4]==1'b0)
-		begin
+	DataMemoryFile 			DataMemory 		(memHAZ,DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],EX_MEM_pipereg[66],EX_MEM_pipereg[64],Clk,Rst);
+									//(ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
+
+always@(posedge Clk)		// Writeback is done at Negedge
+	 begin
 			MEM_WB_pipereg[ 31:  0]  <= DO;						// Memory read Data
-			MEM_WB_pipereg[ 63: 32]  <= EX_MEM_pipereg[ 63: 32];	// ALU output
+			MEM_WB_pipereg[ 63: 32]  <= EX_MEM_pipereg[ 31: 0];	// ALU output
 			MEM_WB_pipereg[ 68: 64]  <= writeReg2;  // Writeback register Select 
 			MEM_WB_pipereg[ 70: 69]  <= ControlWire3;			// regWrite, memtoreg
-		end
-		else
-			MEM_WB_pipereg			<=MEM_WB_pipereg;
-	end
-
+	 end
 //----------------------------------WRITEBACK STAGE--------------------------------------------------------------------------------------------------------------------
 
-Mux 					MemorySelMux 			(writeData,MEM_WB_pipereg[31:0],MEM_WB_pipereg[63:32],MEM_WB_pipereg[69]);
+	Mux 					MemorySelMux 			(writeData,MEM_WB_pipereg[31:0],MEM_WB_pipereg[63:32],MEM_WB_pipereg[69]);
+// Mux for selecting writeback data 				(rd data  ,Memory Data 		   ,ALU Out ,			,	memtoreg)
 
 endmodule
+	
