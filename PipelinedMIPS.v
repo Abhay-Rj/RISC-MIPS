@@ -6,6 +6,7 @@
 `include "ALU.v"
 `include "Control.v"
 `include "HazardUnit.v"
+`include "PipelineRegisterController.v"
 
 module PipelinedMIPS(Clk,Rst);
 
@@ -30,22 +31,22 @@ wire [  4:0] writeReg,writeReg2,writeReg3;
 wire [  4:0] rsSel,rtSel,rdSel;
 wire [  3:0] ALUCnt,stall;
 wire [  1:0] ALUOp;
-wire [  1:0] ControlWire3;
+wire [  1:0] ControlWire3,hazType;
 wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump,zero_eqdet,branch_zero;
 wire 		 flush; // flushIn goes from hazard unit to control unit
-wire 		 nop;
+wire 		 nop,memHAZ;
 
-										//	(stall,flushIF,branch,jump,EX_MEM_Rd,MEM_WB_Rd,ID_EX_Rt,ID_EX_Rs,EX_MEM_regWen,EX_MEM_memRead,MEM_WB_regWen,rst);
-	HazardUnit 			HazUnit 			(nop,stall,flush,branch_zero,jump,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[3],ControlWire2[0],ControlWire3[1],Rst);
-// Combinational Circuit for Generating Hazards
+										
+	HazardUnit 			HazUnit 			(hazType,branch_zero,jump,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
+	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazType); // Combinational as of now
 
 always@(posedge Rst) 					// At reset set PC to Address 32'd0 
 	begin 
 		PC_reg= 32'd0;
-		IF_ID_pipereg <= 64'd0;
-		ID_EX_pipereg <=186'd0;
-		EX_MEM_pipereg<=108'd0;
-		MEM_WB_pipereg<= 71'd0;
+		IF_ID_pipereg <= {6'd63,26'd0};//NOP
+		 ID_EX_pipereg <={6'd63,180'd0}; // NOP
+		 EX_MEM_pipereg<=108'd0;
+		 MEM_WB_pipereg<= 71'd0;
   	end
 
 always @(posedge Clk)
@@ -75,7 +76,7 @@ always@(posedge Clk)
 	 		IF_ID_pipereg	<= IF_ID_pipereg;
 
 	 	if(flush==1'b1)
-		 		IF_ID_pipereg 	<= 64'd0;
+		 		IF_ID_pipereg 	<= {6'd63,26'd0};
 	end
 
 //----------------------------------Instruction---Decode---------------------------------------------------------------------------------------------------
@@ -160,7 +161,7 @@ always@(posedge Clk)
 assign ControlWire3 = {EX_MEM_pipereg[67],EX_MEM_pipereg[65]}; // regWrite, memtoreg
 assign writeReg2    =  EX_MEM_pipereg[72:68];
 
-	DataMemoryFile 			DataMemory 		(DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],EX_MEM_pipereg[66],EX_MEM_pipereg[64],Clk,Rst);
+	DataMemoryFile 			DataMemory 		(memHAZ,DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],EX_MEM_pipereg[66],EX_MEM_pipereg[64],Clk,Rst);
 									//(ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
 
 always@(posedge Clk)		// Writeback is done at Negedge
