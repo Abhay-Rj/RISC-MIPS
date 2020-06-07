@@ -8,7 +8,7 @@ E4
 00  //sub $10,$4,$8
 03
 00
-2A	//	Change 22 to 2A		fails //						Change 2A to 22 true
+22	//	Change 22 to 2A		fails //						Change 2A to 22 true
 10  //beq $1,$10,3	branch fails		// branch is true if beq $1,$2,3 change A to 2
 24
 60

@@ -38,7 +38,7 @@ wire 		 nop,memHAZ;
 
 										
 	HazardUnit 			HazUnit 			(hazType,branch_zero,jump,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
-	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazType); // Combinational as of now
+	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazType,Clk); // Combinational as of now
 
 always@(posedge Rst) 					// At reset set PC to Address 32'd0 
 	begin 
