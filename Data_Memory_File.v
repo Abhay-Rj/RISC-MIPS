@@ -12,7 +12,7 @@ module DataMemoryFile(DMemError,ReadData,Address,WriteData,memWrite,memRead,Clk,
 	wire 		[31:0] ReadData1;
 
 	initial begin $readmemh("Data_Memory.txt",dataMem);  DMemError=1'b0; end
-//	initial begin #9 DMemError=1'b1;#10 DMemError=1'b0; end // introduces a cache miss
+initial begin #5 DMemError=1'b1;#4 DMemError=1'b0; end // introduces a cache miss
 	// always @(posedge Clk) 
 	// begin
 	// 	if(~Rst) 
@@ -32,7 +32,6 @@ module DataMemoryFile(DMemError,ReadData,Address,WriteData,memWrite,memRead,Clk,
 	always @(posedge Clk) 
 	begin
 		if(memWrite)
-			{dataMem[Address+2'b11],dataMem[Address+2'b10],dataMem[Address+2'b01],dataMem[Address]} <= WriteData;
-			// Writes 4 bytes
+			{dataMem[Address+2'b11],dataMem[Address+2'b10],dataMem[Address+2'b01],dataMem[Address]} <= WriteData;// Writes 4 bytes
 	end
 endmodule
