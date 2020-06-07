@@ -4,7 +4,7 @@ module PipelinedMIPS_tb();
 
 	reg Clk,Rst;
 
-	PipelinedMIPS  P5SMIPS(Clk,Rst);
+	PipelinedMIPS  MIPS_CPU(Clk,Rst);
 
 initial 
 	begin
@@ -21,7 +21,7 @@ initial
 		$dumpvars(0,PipelinedMIPS_tb);
 		
 		
-		#50 Rst=1'b0; $finish;
+		#70 Rst=1'b0; $finish;
 
 	end
 endmodule
