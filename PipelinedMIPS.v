@@ -30,21 +30,22 @@ wire [  5:0] opCode,opCode_nop;
 wire [  4:0] writeReg,writeReg2,writeReg3;
 wire [  4:0] rsSel,rtSel,rdSel,stall;
 wire [  3:0] ALUCnt;
+wire [  1:0] hazType;
 wire [  1:0] ALUOp;
-wire [  1:0] ControlWire3,hazType;
+wire [  1:0] ControlWire3;
 wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump,zero_eqdet,branch_zero;
 wire 		 flush; // flushIn goes from hazard unit to control unit
-wire 		 nop,iMemError,dMemError,memHaz;
+wire 		 nop,iMemError,dMemError,memHaz,hazard;
 
 
-assign memHaz = iMemError||dMemError;	// Signal is high when cache miss occurs in Instruction,Data Memory
-					//						(hazType,memHaz,branch     ,jump,EX_Rd    ,MEM_Rd   ,ID_Rt   ,ID_Rs   ,EX_regWen      ,MEM_memRead ,MEM_memWrite,EX_memRead     ,MEM_regWen);					
-	HazardUnit 			HazUnit 			(hazType,memHaz,branch_zero,jump,writeReg ,writeReg2,rtSel   ,rsSel   ,ControlWire2[3],MEM_memRead ,MEM_memWrite,ControlWire2[0],ControlWire3[1]);
-	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazType,Clk); // Combinational as of now
+assign memError = dMemError;	// Signal is high when cache miss occurs in ,Data Memory
 
-always@(posedge Rst) 					// At reset set PC to Address 32'd0 
+	HazardUnit 			HazUnit 			(hazard,writeReg ,writeReg2,rtSel,rsSel,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
+	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazard,branch_zero,jump,dMemError,iMemError,MEM_memRead,MEM_memWrite,Clk,Rst); // Combinational as of now
+	
+always@(posedge Rst) 					
 	begin 
-		PC_reg= 32'd0;
+		PC_reg= 32'd0;// At reset set PC to Address 32'd0 
 		IF_ID_pipereg <= {6'd63,26'd0};//NOP
 		 ID_EX_pipereg <={6'd63,180'd0}; // NOP
 		 EX_MEM_pipereg<=108'd0;
