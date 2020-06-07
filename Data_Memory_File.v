@@ -1,10 +1,11 @@
-module DataMemoryFile(MemError,ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
-	output      [31:0] ReadData;
-	output			   MemError;
+module DataMemoryFile(DMemError,ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
 
-	input [31:0] Address;
-	input [31:0] WriteData;
-	input 	     Clk,memWrite,memRead,Rst;
+	output      [31:0] 	ReadData;
+	output reg 		   	DMemError;	// Cache MISS
+
+	input 		[31:0] 	Address;
+	input 		[31:0] 	WriteData;
+	input 	    	 	Clk,memWrite,memRead,Rst;
 
 	reg        [7:0] dataMem [0:63];  //8x64 Bits = 64 Byte memory
 

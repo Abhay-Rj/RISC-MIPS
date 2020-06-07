@@ -34,7 +34,7 @@ wire [  1:0] ALUOp;
 wire [  1:0] ControlWire3,hazType;
 wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump,zero_eqdet,branch_zero;
 wire 		 flush; // flushIn goes from hazard unit to control unit
-wire 		 nop,memHAZ;
+wire 		 nop,iMemError,dMemError,memHaz;
 
 										
 	HazardUnit 			HazUnit 			(hazType,branch_zero,jump,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
@@ -62,7 +62,7 @@ end
 assign PCout=PC_reg;						// Wire connected to PC output
 
 	Mux 					PCSelect 			(PCin,inc4_PC,JA_BA,PCsrc);// mux for PC value <= PC+4 or Branch/Jump Address
-	InstructionMemoryFile 	InstructionMemory 	(PC_reg,Instruction,Clk);	// 64 x 8 Bit Instruction Memory
+	InstructionMemoryFile 	InstructionMemory 	(iMemError,PC_reg,Instruction,Clk);	// 64 x 8 Bit Instruction Memory
 	Add 			  		PCAddressIncrement	(inc4_PC,PCout,32'd4);		// Adder for PC + 4
 
 always@(posedge Clk)
@@ -161,7 +161,7 @@ always@(posedge Clk)
 assign ControlWire3 = {EX_MEM_pipereg[67],EX_MEM_pipereg[65]}; // regWrite, memtoreg
 assign writeReg2    =  EX_MEM_pipereg[72:68];
 
-	DataMemoryFile 			DataMemory 		(memHAZ,DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],EX_MEM_pipereg[66],EX_MEM_pipereg[64],Clk,Rst);
+	DataMemoryFile 			DataMemory 		(dMemError,DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],EX_MEM_pipereg[66],EX_MEM_pipereg[64],Clk,Rst);
 									//(ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
 
 always@(posedge Clk)		// Writeback is done at Negedge

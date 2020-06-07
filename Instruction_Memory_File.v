@@ -1,9 +1,10 @@
-module InstructionMemoryFile(Address,Data,Clk);
-	input [31:0] Address;
-	output      [31:0] Data;
-	input 	    	  Clk,Rst;
+module InstructionMemoryFile(IMemError,Address,Data,Clk);
+	output      [31:0] 	Data;
+	output reg 			IMemError;		// Cache MISS Flag
+	input 		[31:0]	Address;
+	input 	    	  	Clk,Rst;
 
-	reg        [ 7:0] imembank [0:63];  //  8x64  64B memory
+	reg        	[ 7:0] 	imembank [0:63];  //  8x64  64B memory
 
 initial begin $readmemh("Instruction_Memory.txt",imembank); end // Multiple test cases for jump branch dependencies
 //initial begin $readmemh("Instruction_Memory(old).txt",imembank); end // Basic Program
