@@ -1,76 +1,38 @@
-module HazardUnit(hazType,memHaz,branch,jump,EX_Rd,MEM_Rd,ID_Rt,ID_Rs,EX_regWen,MEM_memRead,MEM_memWrite,EX_memRead,MEM_regWen);
+module HazardUnit(hazard,EX_Rd,MEM_Rd,ID_Rt,ID_Rs,EX_regWen,EX_memRead,MEM_regWen);
 
-//		type 0 : No Hazard
-//		type 1 : Data Hazard : Stall IF and ID stages
-//		type 2 : Control Hazard : Flush IF
-//		type 3 : Cache Hazard   : Stall the  IF,ID,EX and MEM stages
-
-	output  	[1:0]	hazType;
+	output	reg			hazard;
 	input 		[4:0] 	EX_Rd,MEM_Rd,ID_Rs,ID_Rt;
-	input       		EX_regWen,MEM_regWen,EX_memRead,memHaz,MEM_memWrite,MEM_memRead ;
-	input 				branch,jump;
-
-	reg hazFlag,stall,flush;					// Flag register for DEBUGGING
-
-assign hazType={flush,stall};
+	input       		EX_regWen,MEM_regWen,EX_memRead;
 
 always@(*)
-	begin												//PRIORITY OF CHECKING MATTERS
-		if(memHaz)	//   Cache Miss
-			begin
-				flush 	<= 1'b1;	// denotes type 4 error signal  Haztype= 2'b11
-				stall 	<= 1'b1;
-				hazFlag	<= 1'b1;
-			end
-			// Hazard for Branch /Jump stage
-	
-		if(branch||jump)
-			begin
-				flush 	<= 1'b1;
-				hazFlag <= 1'b1;
-			end
-		else
-			begin
-				flush 	<= 1'b0;
-				hazFlag <= 1'b0;
-			end
-
-
-
-		// Hazard for dependency in ID and EX stage
-		if(EX_regWen && ((EX_Rd != 5'd0)))
+	begin	
+		if(EX_regWen && ((EX_Rd != 5'd0)))			// Hazard for dependency in ID and EX stage	
 		begin
 			if((EX_Rd==ID_Rs)||(EX_Rd==ID_Rt))
-			begin
-				stall 	<= 1'b1;
-				hazFlag <= 1'b1;
-			end
+				begin 
+					hazard <= 1'b1;
+				end
 		end
-			// Hazard for dependency in ID and MEM stage
-		else if(MEM_regWen && ((MEM_Rd != 5'd0)))
-		begin
+		else if(MEM_regWen && ((MEM_Rd != 5'd0)))	// Hazard for dependency in ID and MEM stage
+		begin	
 			if((MEM_Rd==ID_Rs)||(MEM_Rd==ID_Rt))
-			begin
-				stall 	<= 1'b1;
-				hazFlag <= 1'b1;
-			end
-		end
-					// Load after a Store
-		else if(EX_memRead && ((EX_Rd != 5'd0)))
-		begin
-			if((EX_Rd==ID_Rs)||(EX_Rd==ID_Rt))
-			begin
-				stall 	<= 1'b1;
-				hazFlag <= 1'b1;
-			end 
+				begin
+					hazard <= 1'b1;
+				end
 		end
 
+		else if(EX_memRead && ((EX_Rd != 5'd0)))	// Load after a Store
+		begin
+			if((EX_Rd==ID_Rs)||(EX_Rd==ID_Rt))
+				begin
+					hazard <= 1'b1;
+				end
+		end
 		else
-			begin
-		 		stall  <= 1'b0; //Type 0
-		 		flush 	<= 1'b0;
-				hazFlag<= 1'b0;
-			end
+				begin
+					hazard <= 1'b0;
+				end
+
 	end  
 endmodule
 
