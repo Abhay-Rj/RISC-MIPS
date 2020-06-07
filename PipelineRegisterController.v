@@ -1,14 +1,25 @@
-module pipeRegControl(nop,stall,flush,hazType);
+module pipeRegControl(nop,stall,flush,hazType,Clk);
 	
 	output 	reg 	[3:0] 	stall;
 	output 	reg 			nop,flush;
 
 	input 			[1:0]	 hazType;
+	input Clk;
+
+	reg [1:0] State;
+
+always @(negedge Clk) 
+	begin
+	
+		State<=hazType;
+
+	end
+
 
 always@(*)
 	begin 
 
-		case (hazType)
+		case (State)	// State Decoder for the present state, gets updated at falling edge of clock
 
 			2'b00:	// No Hazard
 				begin
@@ -63,6 +74,8 @@ always@(*)
 				end
 		endcase
 	end
+
+
 endmodule
 	//  Hazards :   TYPE 1    EXECUTION HAZARDS
 	//		EX/MEM.REGISTER RD = =  ID/EX.REGISTER RS
