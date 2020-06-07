@@ -9,8 +9,10 @@ module DataMemoryFile(DMemError,ReadData,Address,WriteData,memWrite,memRead,Clk,
 
 	reg        [7:0] dataMem [0:63];  //8x64 Bits = 64 Byte memory
 
-	initial begin $readmemh("Data_Memory.txt",dataMem); end
+	wire 		[31:0] ReadData1;
 
+	initial begin $readmemh("Data_Memory.txt",dataMem);  DMemError=1'b0; end
+//	initial begin #9 DMemError=1'b1;#10 DMemError=1'b0; end // introduces a cache miss
 	// always @(posedge Clk) 
 	// begin
 	// 	if(~Rst) 
@@ -23,8 +25,9 @@ module DataMemoryFile(DMemError,ReadData,Address,WriteData,memWrite,memRead,Clk,
 	// 		 end
 	// end 
 	
-
-	assign ReadData =(memRead)?{dataMem[Address+2'b11],dataMem[Address+2'b10],dataMem[Address+2'b01],dataMem[Address]}:32'hZZZZZZZZ;
+	assign ReadData  =(DMemError)?32'hBAD0DADA:ReadData1;
+	
+	assign ReadData1 =(memRead)?{dataMem[Address+2'b11],dataMem[Address+2'b10],dataMem[Address+2'b01],dataMem[Address]}:32'hZZZZZZZZ;
 				// Scoops 4 8 bit memory locations at a time in Little Endian
 	always @(posedge Clk) 
 	begin

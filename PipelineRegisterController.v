@@ -1,25 +1,16 @@
 module pipeRegControl(nop,stall,flush,hazType,Clk);
 	
-	output 	reg 	[3:0] 	stall;
+	output 	reg 	[4:0] 	stall;
 	output 	reg 			nop,flush;
 
 	input 			[1:0]	 hazType;
 	input Clk;
 
 	reg [1:0] State;
-
-always @(negedge Clk) 
-	begin
-	
-		State<=hazType;
-
-	end
-
-
 always@(*)
 	begin 
 
-		case (State)	// State Decoder for the present state, gets updated at falling edge of clock
+		case (hazType)	// State Decoder for the present state, gets updated at falling edge of clock
 
 			2'b00:	// No Hazard
 				begin
@@ -29,6 +20,7 @@ always@(*)
 		 			stall[1]	<= 1'b0;	//IF_ID
 		 			stall[2]	<= 1'b0;	//ID_EX
 		 			stall[3]	<= 1'b0;	//EX_MEM
+		 			stall[4]	<= 1'b0;	//MEM_WB
 
 				end
 
@@ -40,6 +32,7 @@ always@(*)
 		 			stall[1]	<= 1'b1;	//IF_ID
 		 			stall[2]	<= 1'b0;	//ID_EX
 		 			stall[3]	<= 1'b0;	//EX_MEM
+		 			stall[4]	<= 1'b0;	//MEM_WB
 		 		end
 			2'b10:	// Branch Jump Hazard, Flush the IF/IF register, 
 				begin
@@ -49,10 +42,11 @@ always@(*)
 		 			stall[1]	<= 1'b0;	//IF_ID
 		 			stall[2]	<= 1'b0;	//ID_EX
 		 			stall[3]	<= 1'b0;	//EX_MEM
+		 			stall[4]	<= 1'b0;	//MEM_WB
 
 				end
 
-			2'b01:	// Stall IF,ID,EX,MEM , no bubble.
+			2'b11:	// Stall IF,ID,EX,MEM , no bubble.
 				begin
 					nop 		<= 1'b0;
 					flush		<= 1'b0;
@@ -60,6 +54,7 @@ always@(*)
 		 			stall[1]	<= 1'b1;	//IF_ID
 		 			stall[2]	<= 1'b1;	//ID_EX
 		 			stall[3]	<= 1'b1;	//EX_MEM
+		 			stall[4]	<= 1'b1;	//MEM_WB
 		 		end
 
 			default : // Normal
@@ -70,6 +65,7 @@ always@(*)
 		 			stall[1]	<= 1'b0;	//IF_ID
 		 			stall[2]	<= 1'b0;	//ID_EX
 		 			stall[3]	<= 1'b0;	//EX_MEM
+		 			stall[4]	<= 1'b0;	//MEM_WB
 
 				end
 		endcase

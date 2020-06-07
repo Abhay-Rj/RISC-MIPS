@@ -28,16 +28,18 @@ wire [  7:0] ControlWire1;
 wire [  3:0] ControlWire2;
 wire [  5:0] opCode,opCode_nop;
 wire [  4:0] writeReg,writeReg2,writeReg3;
-wire [  4:0] rsSel,rtSel,rdSel;
-wire [  3:0] ALUCnt,stall;
+wire [  4:0] rsSel,rtSel,rdSel,stall;
+wire [  3:0] ALUCnt;
 wire [  1:0] ALUOp;
 wire [  1:0] ControlWire3,hazType;
 wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump,zero_eqdet,branch_zero;
 wire 		 flush; // flushIn goes from hazard unit to control unit
 wire 		 nop,iMemError,dMemError,memHaz;
 
-										
-	HazardUnit 			HazUnit 			(hazType,branch_zero,jump,writeReg,writeReg2,rtSel ,rsSel  ,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
+
+assign memHaz = iMemError||dMemError;	// Signal is high when cache miss occurs in Instruction,Data Memory
+					//						(hazType,memHaz,branch     ,jump,EX_Rd    ,MEM_Rd   ,ID_Rt   ,ID_Rs   ,EX_regWen      ,MEM_memRead ,MEM_memWrite,EX_memRead     ,MEM_regWen);					
+	HazardUnit 			HazUnit 			(hazType,memHaz,branch_zero,jump,writeReg ,writeReg2,rtSel   ,rsSel   ,ControlWire2[3],MEM_memRead ,MEM_memWrite,ControlWire2[0],ControlWire3[1]);
 	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazType,Clk); // Combinational as of now
 
 always@(posedge Rst) 					// At reset set PC to Address 32'd0 
@@ -158,19 +160,26 @@ always@(posedge Clk)
 
 //----------------------------------MEMORY STAGE-----------------------------------------------------------------------------------------------------------
 
+assign MEM_memRead  = EX_MEM_pipereg[64];
+assign MEM_memWrite = EX_MEM_pipereg[66];
 assign ControlWire3 = {EX_MEM_pipereg[67],EX_MEM_pipereg[65]}; // regWrite, memtoreg
 assign writeReg2    =  EX_MEM_pipereg[72:68];
 
-	DataMemoryFile 			DataMemory 		(dMemError,DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],EX_MEM_pipereg[66],EX_MEM_pipereg[64],Clk,Rst);
-									//(ReadData,Address,WriteData,memWrite,memRead,Clk,Rst);
+	DataMemoryFile 			DataMemory 		(dMemError,DO,EX_MEM_pipereg[31:0],EX_MEM_pipereg[63:32],MEM_memWrite,MEM_memRead,Clk,Rst);
+									//(ReadData,Address,WriteData,memWrite[66],memRead[64],Clk,Rst);
 
 always@(posedge Clk)		// Writeback is done at Negedge
-	 begin
+	begin
+		if(stall[4]==1'b0)
+		 begin
 			MEM_WB_pipereg[ 31:  0]  <= DO;						// Memory read Data
 			MEM_WB_pipereg[ 63: 32]  <= EX_MEM_pipereg[ 31: 0];	// ALU output
 			MEM_WB_pipereg[ 68: 64]  <= writeReg2;  // Writeback register Select 
 			MEM_WB_pipereg[ 70: 69]  <= ControlWire3;			// regWrite, memtoreg
-	 end
+		end
+		else
+			MEM_WB_pipereg		<= MEM_WB_pipereg;
+	end
 //----------------------------------WRITEBACK STAGE--------------------------------------------------------------------------------------------------------------------
 
 	Mux 					MemorySelMux 			(writeData,MEM_WB_pipereg[31:0],MEM_WB_pipereg[63:32],MEM_WB_pipereg[69]);
