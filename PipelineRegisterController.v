@@ -1,10 +1,11 @@
-module pipeRegControl(nop,stall,flush,hazard,branch,jump,dmemError,imemError,MEM_memRead,MEM_memWrite,Clk,Rst);
+module pipeRegControl(nop,stall,flushIF,hazard,flush,dmemError,imemError,MEM_memRead,MEM_memWrite,Clk,Rst);
 	
-	output 	reg 	[4:0] 	stall;
-	output 	reg 			nop;
-	output 					flush;
+	output 	reg 	[4:0] 	stall;			// To stall different registers{WB,MEM,EX,ID,IF,PC}
+	output 	reg 			nop;			// To introduce NOP bubble in pipeline
+	output 					flushIF;		// To flush IF_ID_Pipereg
 
-	input 					hazard,jump,branch,MEM_memWrite,MEM_memRead,memError,dmemError,imemError;
+	input 					hazard,jump,branch,MEM_memWrite,MEM_memRead,dmemError,imemError;
+	input					flush;		// Input from Hazard Unit
 	input 					Clk,Rst;
 
 	reg 			[1:0] 	State,nextState;
@@ -15,7 +16,7 @@ parameter normal  	= 2'b00;
 parameter stall_1  	= 2'b01;
 parameter stall_2	= 2'b10;
 
-assign flush 	= (jump||branch)?1'b1:1'b0;		// Flush the IF stage if branching/jumping
+assign flushIF	= flush;
 assign dmemHaz  = (dmemError && (MEM_memWrite||MEM_memRead)); // Checks if memory is accessed in Cache Miss
 assign memHaz   = (dmemHaz || imemError ); // Instruction memory always gets accessed.
 assign hazType  = {memHaz,((~memHaz)&&hazard)};

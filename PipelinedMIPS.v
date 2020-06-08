@@ -16,7 +16,6 @@ reg  [ 63:0] IF_ID_pipereg;
 reg  [119:0] ID_EX_pipereg;
 reg  [ 72:0] EX_MEM_pipereg;
 reg  [ 70:0] MEM_WB_pipereg;
-
 reg  [ 31:0] PC_reg;
 
 wire [ 31:0] Instruction,inc4_PC,PCout,DO,PCin;
@@ -30,18 +29,19 @@ wire [  5:0] opCode,opCode_nop;
 wire [  4:0] writeReg,writeReg2,writeReg3;
 wire [  4:0] rsSel,rtSel,rdSel,stall;
 wire [  3:0] ALUCnt;
-wire [  1:0] hazType;
 wire [  1:0] ALUOp;
 wire [  1:0] ControlWire3;
 wire 	     ALUsrc,regWrite,memWrite,memtoreg,memRead,regDst,branch,zero,PCsrc,jump,zero_eqdet,branch_zero;
-wire 		 flush; // flushIn goes from hazard unit to control unit
-wire 		 nop,iMemError,dMemError,memHaz,hazard;
+wire 		 MEM_memRead,MEM_memWrite;
+wire 		 flush,flushIF;// flushIF is the output of PipeControl, flush is output of HazUnit 
+wire 		 nop,iMemError,dMemError,hazard;
 
 
 assign memError = dMemError;	// Signal is high when cache miss occurs in ,Data Memory
-
-	HazardUnit 			HazUnit 			(hazard,writeReg ,writeReg2,rtSel,rsSel,ControlWire2[3],ControlWire2[0],ControlWire3[1]);
-	pipeRegControl 		pipRegCntrl 		(nop,stall,flush,hazard,branch_zero,jump,dMemError,iMemError,MEM_memRead,MEM_memWrite,Clk,Rst); // Combinational as of now
+										//	(hazard,flush,EX_Rd,MEM_Rd,ID_Rt,ID_Rs,EX_regWen,EX_memRead,MEM_regWen,branch,jump);
+	HazardUnit 			HazUnit 			(hazard,flush,writeReg ,writeReg2,rtSel,rsSel,ControlWire2[3],ControlWire2[0],ControlWire3[1],branch_zero,jump);
+								//			(nop,stall,flushIF,hazard,flush,dmemError,imemError,MEM_memRead,MEM_memWrite,Clk,Rst);
+	pipeRegControl 		pipRegCntrl 		(nop,stall,flushIF,hazard,flush,dMemError,iMemError,MEM_memRead,MEM_memWrite,Clk,Rst); // Combinational as of now
 	
 always@(posedge Rst) 					
 	begin 
@@ -78,7 +78,7 @@ always@(posedge Clk)
 	 	else
 	 		IF_ID_pipereg	<= IF_ID_pipereg;
 
-	 	if(flush==1'b1)
+	 	if(flushIF==1'b1)
 		 		IF_ID_pipereg 	<= {6'd63,26'd0};
 	end
 
