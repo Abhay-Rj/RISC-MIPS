@@ -155,7 +155,7 @@ assign ALUOp= {ALUOp1,ALUOp0};
 							ALUOp0		<= 1'b1;
 						end
 
-					6'b000100 : // BNE   Modify
+					6'b000101 : // BNE   Modify
 						begin
 							RegDst 		<= 1'bx;
 							ALUsrc 		<= 1'b0;
