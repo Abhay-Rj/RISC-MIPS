@@ -1,14 +1,23 @@
 module HazardUnit(hazard,flush,EX_Rd,MEM_Rd,ID_Rt,ID_Rs,EX_regWen,EX_memRead,MEM_regWen,branch,jump);
 
 	output	reg			hazard;
-	output  			flush;
+	output  reg 		flush;
 	input 		[4:0] 	EX_Rd,MEM_Rd,ID_Rs,ID_Rt;
 	input       		EX_regWen,MEM_regWen,EX_memRead;
 	input				branch,jump;
 
 
 //CONTROL HAZARDS
-assign flush 	= (jump||branch)?1'b1:1'b0;		// Flush the IF stage if branching/jumping
+always@(jump,branch)
+	begin
+		case(jump||branch)
+			1'b0: flush <=1'b0;
+			1'b1: flush <=1'b1;
+			default: flush <=1'b0;
+		endcase
+	end
+
+//assign flush 	= (jump||branch)?1'b1:1'b0;		// Flush the IF stage if branching/jumping
 
 // DATA HAZARDS
 always@(*)
