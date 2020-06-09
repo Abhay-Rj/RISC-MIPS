@@ -27,10 +27,6 @@ begin
 	State <= {memHaz,((~memHaz)&&hazard)};
 end
 
-
-
-
-
 // Output Logic
 always@(*)
 	begin 
@@ -73,61 +69,6 @@ always@(*)
 			end
 		endcase
 	end
-
-
-
-
-
-
-
-
-
-
-
-// parameter stall_2 = 2'b10;
-// parameter stall_3 = 2'b11;
-
-// 	// Next state logic
-// 	always@(*)
-// 	begin
-// 		case(State)
-// 			normal: 
-// 				case(hazType)
-// 					3'b010 : nextState <= stall_1;
-// 					3'b001 : nextState <= stall_2;
-// 					3'b100 : nextState <= stall_3;
-// 					default: nextState <= normal;
-// 				endcase
-// 			stall_1: // 
-// 				case(hazType)
-// 					3'b000 : nextState <= normal;
-// 					3'b001 : nextState <= stall_2;
-// 					3'b100 : nextState <= stall_3;
-// 					default: nextState <= stall_1;
-// 				endcase
-// 			stall_2:
-// 				case(hazType)
-// 					3'b000 : nextState <= normal;
-// 					3'b010 : nextState <= stall_1;
-// 					3'b100 : nextState <= stall_3;
-// 					default: nextState <= stall_2;
-// 				endcase
-// 			// stall_3:
-// 			// 	casex(hazType)
-// 			// 		3'b000 : nextState <= normal;
-// 			// 		3'b01x : nextState <= stall_1;
-// 			// 		3'b0x1 : nextState <= stall_2;
-// 			// 		default: nextState <= normal;
-// 			// 	endcase
-// 			default: nextState<= normal;
-// 		endcase
-// 	end
-
-// always @(negedge Clk)
-// 	State<=nextState;
-
-
-
 endmodule
 	//  Hazards :   TYPE 1    EXECUTION HAZARDS
 	//		EX/MEM.REGISTER RD = =  ID/EX.REGISTER RS
