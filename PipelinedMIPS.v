@@ -90,10 +90,10 @@ assign rdSel  	 = IF_ID_pipereg[15:11];	//	Instruction's Rd Field
 assign opCode 	 = IF_ID_pipereg[31:26];	//  OpCode for the Instruction first 6 bits
 assign writeReg3 = MEM_WB_pipereg[68:64];   //  Destination register to be written in WB stage
 assign JuOffset32={IF_ID_pipereg[63:60],JuOffset28};	// {PC+4[31:28], 28 bit shiftet jump address} Concatanates to 32 Bits Jump Address
-assign PCsrc 	 =((branch && zero_eqdet) || jump);  // Control signals branch,zero,jump are generated in ID stage sent to IF
+assign PCsrc 	 =((branch && (zero_eqdet^IF_ID_pipereg[26])) || jump);  // Control signals branch,zero,jump are generated in ID stage sent to IF
 assign ControlWire1	={ALUsrc,regWrite,memWrite,ALUOp,memtoreg,memRead,regDst};  // Control Signals Bundled together.
 assign zero_eqdet= ~(|(data1^data2));
-assign branch_zero= branch&&zero_eqdet;
+assign branch_zero= (branch&&(zero_eqdet^IF_ID_pipereg[26]));// Check for BNE/BEQ
 // Detects if data in Rs and Rt is equal or not, Zero==1 if both data are equal 
 	RegisterFile		Registers 			(data1,data2,rsSel,rtSel,writeReg3,writeData,Clk,Rst,MEM_WB_pipereg[70]);
 // Register File has 32 GPRs, data1&2 are 32 bit data of selected registers,writeData is RD reg data,MEM_WB_pipereg[70] is the RegWrite Signal
