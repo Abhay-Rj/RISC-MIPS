@@ -1,30 +1,21 @@
 module PipelinedMIPS_tb();
-
 	reg Clk,Rst;
-
 	PipelinedMIPS  MIPS_CPU(Clk,Rst);
-
 initial 
 	begin
 			Clk=1'b1;
 			Rst=1'b0;
 			#1 Rst=1'b1;
-
 			forever #1 Clk=~Clk;
 	end
-
 initial
 	begin
 		$dumpfile("Test.vcd");
 		$dumpvars(0,PipelinedMIPS_tb);
-		
-		
 		#70 Rst=1'b0; $finish;
-
 	end
 endmodule
 module PipelinedMIPS(Clk,Rst);
-
 input Clk,Rst;
 // Pipeline registers
 reg  [ 63:0] IF_ID_pipereg; 
@@ -53,9 +44,8 @@ wire 		 nop,iMemError,dMemError,hazard;
 
 
 assign memError = dMemError;	// Signal is high when cache miss occurs in ,Data Memory
-										//	(hazard,flush,EX_Rd,MEM_Rd,ID_Rt,ID_Rs,EX_regWen,EX_memRead,MEM_regWen,branch,jump);
+										
 	HazardUnit 			HazUnit 			(hazard,flush,writeReg ,writeReg2,rtSel,rsSel,ControlWire2[3],ControlWire2[0],ControlWire3[1],branch_zero,jump);
-								//			(nop,stall,flushIF,hazard,flush,dmemError,imemError,MEM_memRead,MEM_memWrite,Clk,Rst);
 	pipeRegControl 		pipRegCntrl 		(nop,stall,flushIF,hazard,flush,dMemError,iMemError,MEM_memRead,MEM_memWrite,Clk,Rst); // Combinational as of now
 	
 always@(posedge Rst) 					
